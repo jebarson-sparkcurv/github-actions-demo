@@ -1,0 +1,48 @@
+name: Deploy to Testing Server
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.TEST_SERVER_SSH_KEY }}" > ~/.ssh/github-actions
+          chmod 600 ~/.ssh/github-actions
+
+      - name: Add EC2 server
+        run: |
+          ssh-keyscan -H "${{ secrets.TEST_SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copy website to EC2
+        run: |
+          scp -i ~/.ssh/github-actions \
+            index.html \
+            "${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}:/home/ubuntu/shopping-deploy/"
+
+      - name: Deploy website
+        run: |
+          ssh -i ~/.ssh/github-actions \
+            "${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}" \
+            "cp /home/ubuntu/shopping-deploy/index.html /var/www/shopping/index.html"
+
+      - name: Test website
+        run: |
+          curl http://${{ secrets.TEST_SERVER_HOST }}:4000
