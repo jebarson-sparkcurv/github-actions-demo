@@ -1,0 +1,25 @@
+name: Create Developer PR
+
+on:
+  push:
+    branches:
+      - developer
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.PR_CREATION_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head developer \
+            --title "Developer → Main" \
+            --body "Automatically created PR from developer branch."
